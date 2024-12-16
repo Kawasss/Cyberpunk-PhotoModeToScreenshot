@@ -24,12 +24,18 @@
     <ClCompile Include="src\Image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Steam.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DownSampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Steam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

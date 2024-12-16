@@ -132,10 +132,12 @@
     <ClCompile Include="src\DownSampler.cpp" />
     <ClCompile Include="src\Image.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Steam.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\DownSampler.h" />
     <ClInclude Include="src\Image.h" />
+    <ClInclude Include="src\Steam.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

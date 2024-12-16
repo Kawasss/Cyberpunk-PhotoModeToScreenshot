@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <filesystem>
-#include <stb/stb_image.h>
 #include <fstream>
 
 #include <stb/stb_image_write.h>

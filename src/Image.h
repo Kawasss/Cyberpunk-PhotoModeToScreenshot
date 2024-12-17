@@ -14,7 +14,7 @@ struct Image
 
 	std::vector<uint8_t> fullData, thumbnailData;
 
-	bool WriteToFile(const std::string& fullDst, const std::string thumbnailDst);
+	bool WriteToFile(const std::string& fullDst, const std::string& thumbnailDst);
 
 	static Image ReadFromFile(const std::string& path);
 };

@@ -60,7 +60,7 @@ Image Image::ReadFromFile(const std::string& path)
 	return image;
 }
 
-bool Image::WriteToFile(const std::string& fullDst, const std::string thumbnailDst)
+bool Image::WriteToFile(const std::string& fullDst, const std::string& thumbnailDst)
 {
 	std::cout << "Encoding the full screenshot at '" << fullDst << "'... ";
 

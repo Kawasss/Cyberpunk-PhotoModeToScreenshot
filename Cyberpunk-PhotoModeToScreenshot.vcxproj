@@ -135,6 +135,7 @@
     <ClCompile Include="src\Steam.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\DialogManager.h" />
     <ClInclude Include="src\DownSampler.h" />
     <ClInclude Include="src\Image.h" />
     <ClInclude Include="src\Steam.h" />

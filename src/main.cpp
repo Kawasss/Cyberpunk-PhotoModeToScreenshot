@@ -5,6 +5,7 @@
 #include <string>
 #include <filesystem>
 
+#include "DialogManager.h"
 #include "DownSampler.h"
 #include "Image.h"
 #include "Steam.h"
@@ -29,36 +30,91 @@ std::string GetPicturesDirectory()
 	return str;
 }
 
-std::string GetImage()
+std::vector<std::string> GetImage()
 {
-	OPENFILENAMEA ofn;
-	char szFile[MAX_PATH] = { 0 };
+	COMDLG_FILTERSPEC filter = { L"PNG image", L"*.png;*.PNG" };
+	std::vector<std::string> ret;
 
+	DialogManager dialog;
+	HRESULT hr = CoInitialize(NULL);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog.ptr));
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	hr = dialog->SetFileTypes(1, &filter);
+	if (!SUCCEEDED(hr))
+		return ret;
+	
 	std::string dir = GetPicturesDirectory() + "\\Cyberpunk 2077";
+	std::wstring wdir = std::wstring(dir.begin(), dir.end());
 
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = "png\0*.png\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = NULL;
-	ofn.lpstrInitialDir = dir.c_str();
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+	IShellItem* pFolder = nullptr;
+	hr = SHCreateItemFromParsingName(wdir.c_str(), NULL, IID_PPV_ARGS(&pFolder));
+	if (!SUCCEEDED(hr))
+		return ret;
 
-	return GetOpenFileNameA(&ofn) == TRUE ? ofn.lpstrFile : "";
+	DWORD options = 0;
+	hr = dialog->GetOptions(&options);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	hr = dialog->SetOptions(options | FOS_ALLOWMULTISELECT | FOS_STRICTFILETYPES);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	hr = dialog->SetFolder(pFolder);
+	pFolder->Release();
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	hr = dialog->Show(NULL);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	IShellItemArray* items;
+	hr = dialog->GetResults(&items);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	DWORD count = 0;
+	hr = items->GetCount(&count);
+	if (!SUCCEEDED(hr))
+		return ret;
+
+	if (count == 0)
+		return ret;
+	ret.reserve(count);
+
+	for (DWORD i = 0; i < count; i++)
+	{
+		IShellItem* item = nullptr;
+		hr = items->GetItemAt(i, &item);
+		if (!SUCCEEDED(hr))
+			return ret;
+
+		wchar_t* wpath = nullptr;
+		hr = item->GetDisplayName(SIGDN_FILESYSPATH, &wpath);
+		if (!SUCCEEDED(hr))
+			return ret;
+
+		std::string path = ConvertWideString(wpath);
+		ret.emplace_back(path);
+
+		std::cout << path << '\n';
+	}
+	return ret;
 }
 
 int main(int argc, char** argv)
 {
-	std::string png = GetImage();
+	std::vector<std::string> png = GetImage();
 	if (png.empty())
 		return 1;
 
-	Image image = Image::ReadFromFile(png);
+	Image image = Image::ReadFromFile(png[0]);
 	if (!image.succeeded)
 		return 1;
 	
@@ -72,7 +128,9 @@ int main(int argc, char** argv)
 	std::string screenshotFile = ssFolder.string() + "\\" + file;
 	std::string thumbnailsFile = tbFolder.string() + "\\" + file;
 
-	//std::cout << screenshotFile << '\n' << thumbnailsFile << '\n';
+#ifdef _DEBUG
+	std::cout << screenshotFile << '\n' << thumbnailsFile << '\n';
+#endif
 
 	if (!image.WriteToFile(screenshotFile, thumbnailsFile))
 		return 1;

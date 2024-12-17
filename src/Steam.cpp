@@ -3,23 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-#include <shobjidl_core.h>
-
 #include "Steam.h"
-
-class DialogManager
-{
-public:
-	DialogManager() = default;
-	~DialogManager() { if (ptr) ptr->Release(); }
-
-	DialogManager(const DialogManager&) = delete;
-	DialogManager& operator=(DialogManager&&) = delete;
-
-	IFileOpenDialog* operator->() { return ptr; }
-
-	IFileOpenDialog* ptr = nullptr;
-};
+#include "DialogManager.h"
 
 inline std::string ConvertWideStringToString(const wchar_t* wstring)
 {

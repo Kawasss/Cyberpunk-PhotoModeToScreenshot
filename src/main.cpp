@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <algorithm>
+#include <execution>
 
 #include "DialogManager.h"
 #include "DownSampler.h"
@@ -30,7 +32,7 @@ std::string GetPicturesDirectory()
 	return str;
 }
 
-std::vector<std::string> GetImage()
+std::vector<std::string> GetImages()
 {
 	COMDLG_FILTERSPEC filter = { L"PNG image", L"*.png;*.PNG" };
 	std::vector<std::string> ret;
@@ -93,30 +95,37 @@ std::vector<std::string> GetImage()
 
 int main(int argc, char** argv)
 {
-	std::vector<std::string> png = GetImage();
-	if (png.empty())
+	std::vector<std::string> pngs = GetImages();
+	if (pngs.empty())
 		return 1;
 
-	Image image = Image::ReadFromFile(png[0]);
-	if (!image.succeeded)
-		return 1;
-	
 	fs::path ssFolder, tbFolder;
 	steam::RequestScreenshotDirectory(ssFolder, tbFolder);
 
-	std::string file = steam::CreateScreenshotName();
+	std::for_each(std::execution::par_unseq, pngs.begin(), pngs.end(),
+		[&](const std::string& png)
+		{
+			auto it = std::find(pngs.begin(), pngs.end(), png);
+			int index = static_cast<int>(it - pngs.begin());
 
-	std::cout << "Generated steam name '" << file << "'!\n";
+			Image image = Image::ReadFromFile(pngs[index]);
+			if (!image.succeeded)
+				return;
 
-	std::string screenshotFile = ssFolder.string() + "\\" + file;
-	std::string thumbnailsFile = tbFolder.string() + "\\" + file;
+			std::string file = steam::CreateScreenshotName(index + 1);
 
-#ifdef _DEBUG
-	std::cout << screenshotFile << '\n' << thumbnailsFile << '\n';
-#endif
+			std::cout << "Generated steam name '" << file << "'!\n";
 
-	if (!image.WriteToFile(screenshotFile, thumbnailsFile))
-		return 1;
+			std::string screenshotFile = ssFolder.string() + "\\" + file;
+			std::string thumbnailsFile = tbFolder.string() + "\\" + file;
 
+			#ifdef _DEBUG
+			std::cout << screenshotFile << '\n' << thumbnailsFile << '\n';
+			#endif
+
+			if (!image.WriteToFile(screenshotFile, thumbnailsFile))
+				return;
+		}
+	);
 	return 0;
 }

@@ -30,7 +30,7 @@ std::vector<uint8_t> ReadFile(const std::string& path)
 Image Image::ReadFromFile(const std::string& path)
 {
 	Image image;
-	std::cout << "Decoding '" << path << "'... ";
+	std::cout << "Decoding '" << path << "'...\n";
 
 	std::vector<uint8_t> pngData = ReadFile(path);
 	if (pngData.empty())
@@ -49,10 +49,6 @@ Image Image::ReadFromFile(const std::string& path)
 
 	std::cout << "done!\n";
 
-	std::cout << "\nImage data:\n"
-		<< "  dimensions: " << image.full.width << 'x' << image.full.height << " px\n"
-		<< "  channels:   " << channels << " (forcing RGB only)\n\n";
-
 	DownSampler sampler;
 	image.thumbnailData = sampler.Run(raw, image.thumbnail.width, image.thumbnail.height, 3);
 
@@ -62,7 +58,7 @@ Image Image::ReadFromFile(const std::string& path)
 
 bool Image::WriteToFile(const std::string& fullDst, const std::string& thumbnailDst)
 {
-	std::cout << "Encoding the full screenshot at '" << fullDst << "'... ";
+	std::cout << "Encoding the full screenshot at '" << fullDst << "'...\n";
 
 	if (!stbi_write_jpg(fullDst.c_str(), full.width, full.height, STBI_rgb, fullData.data(), 100))
 	{

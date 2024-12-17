@@ -44,9 +44,7 @@ std::vector<std::string> GetImage()
 	if (!SUCCEEDED(hr))
 		return ret;
 
-	hr = dialog->SetFileTypes(1, &filter);
-	if (!SUCCEEDED(hr))
-		return ret;
+	dialog->SetFileTypes(1, &filter);
 	
 	std::string dir = GetPicturesDirectory() + "\\Cyberpunk 2077";
 	std::wstring wdir = std::wstring(dir.begin(), dir.end());
@@ -57,54 +55,39 @@ std::vector<std::string> GetImage()
 		return ret;
 
 	DWORD options = 0;
-	hr = dialog->GetOptions(&options);
-	if (!SUCCEEDED(hr))
-		return ret;
+	dialog->GetOptions(&options);
+	dialog->SetOptions(options | FOS_ALLOWMULTISELECT | FOS_STRICTFILETYPES);
 
-	hr = dialog->SetOptions(options | FOS_ALLOWMULTISELECT | FOS_STRICTFILETYPES);
-	if (!SUCCEEDED(hr))
-		return ret;
-
-	hr = dialog->SetFolder(pFolder);
+	dialog->SetFolder(pFolder);
 	pFolder->Release();
-	if (!SUCCEEDED(hr))
-		return ret;
 
-	hr = dialog->Show(NULL);
-	if (!SUCCEEDED(hr))
-		return ret;
+	dialog->Show(NULL);
 
 	IShellItemArray* items;
-	hr = dialog->GetResults(&items);
-	if (!SUCCEEDED(hr))
-		return ret;
+	dialog->GetResults(&items);
 
 	DWORD count = 0;
-	hr = items->GetCount(&count);
-	if (!SUCCEEDED(hr))
-		return ret;
+	items->GetCount(&count);
 
 	if (count == 0)
+	{
+		items->Release();
 		return ret;
+	}
 	ret.reserve(count);
 
 	for (DWORD i = 0; i < count; i++)
 	{
-		IShellItem* item = nullptr;
-		hr = items->GetItemAt(i, &item);
-		if (!SUCCEEDED(hr))
-			return ret;
+		wchar_t* wpath   = nullptr;
+		IShellItem* item = nullptr; // i dont know if i have to release these items too ??
 
-		wchar_t* wpath = nullptr;
-		hr = item->GetDisplayName(SIGDN_FILESYSPATH, &wpath);
-		if (!SUCCEEDED(hr))
-			return ret;
+		items->GetItemAt(i, &item);
+		item->GetDisplayName(SIGDN_FILESYSPATH, &wpath);
 
 		std::string path = ConvertWideString(wpath);
 		ret.emplace_back(path);
-
-		std::cout << path << '\n';
 	}
+	items->Release();
 	return ret;
 }
 

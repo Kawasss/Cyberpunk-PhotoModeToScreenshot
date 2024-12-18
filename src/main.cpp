@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <execution>
+#include <fstream>
 
 #include "DialogManager.h"
 #include "DownSampler.h"
@@ -24,25 +25,25 @@ std::string ConvertWideString(const wchar_t* wstring)
 
 std::string GetPicturesDirectory()
 {
-	wchar_t* path;
-	SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &path);
-	std::string str = ConvertWideString(path);
+	char path[MAX_PATH];
+	SHGetFolderPathA(NULL, CSIDL_MYPICTURES, NULL, SHGFP_TYPE_CURRENT, path);
+	return path;
+}
 
-	CoTaskMemFree(path);
-	return str;
+std::string GetAppDataDirectory()
+{
+	char path[MAX_PATH];
+	SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, path);
+	return path;
 }
 
 std::vector<std::string> GetImages()
 {
 	COMDLG_FILTERSPEC filter = { L"PNG image", L"*.png;*.PNG" };
 	std::vector<std::string> ret;
-
 	DialogManager dialog;
-	HRESULT hr = CoInitialize(NULL);
-	if (!SUCCEEDED(hr))
-		return ret;
 
-	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog.ptr));
+	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog.ptr));
 	if (!SUCCEEDED(hr))
 		return ret;
 
@@ -64,7 +65,7 @@ std::vector<std::string> GetImages()
 	pFolder->Release();
 
 	dialog->Show(NULL);
-
+	
 	IShellItemArray* items;
 	dialog->GetResults(&items);
 
@@ -93,14 +94,65 @@ std::vector<std::string> GetImages()
 	return ret;
 }
 
+void WriteDirectoriesToSaveFile(const fs::path& dst, const fs::path& ssFolder, const fs::path& tbFolder)
+{
+	fs::path parent = dst.parent_path();
+	if (!fs::exists(parent))
+		fs::create_directory(parent);
+
+	std::ofstream stream(dst.string());
+	stream << ssFolder.string();
+
+	std::cout << "Saved screenshot location to the disk!\n";
+}
+
+ bool ReadDirectoriesFromSaveFile(const fs::path& src, fs::path& ssFolder, fs::path& tbFolder)
+{
+	 std::ifstream stream(src.string());
+	 std::string ssPath;
+	 
+	 stream >> ssPath;
+
+	 ssFolder = ssPath;
+	 tbFolder = ssPath + "\\thumbnails";
+
+	 std::cout << "Read screenshot location from save file, verifying directories...\n";
+
+	 return fs::exists(ssFolder) && fs::exists(tbFolder);
+}
+
 int main(int argc, char** argv)
 {
+	HRESULT hr = CoInitialize(NULL);
+	if (!SUCCEEDED(hr))
+		return 1;
+
+	std::cout << "Requesting image(s) to be converted...\n";
 	std::vector<std::string> pngs = GetImages();
 	if (pngs.empty())
 		return 1;
 
+	fs::path saveDir = GetAppDataDirectory() + "\\cp2077_photomode_converter\\directories.txt";
+	bool saved = fs::exists(saveDir);
+
 	fs::path ssFolder, tbFolder;
-	steam::RequestScreenshotDirectory(ssFolder, tbFolder);
+	if (!saved)
+	{
+		std::cout << "Save file not found! Looked for '" << saveDir.string() << "'\n";
+
+		steam::RequestScreenshotDirectory(ssFolder, tbFolder);
+		WriteDirectoriesToSaveFile(saveDir, ssFolder, tbFolder);
+	}
+	else
+	{
+		if (!ReadDirectoriesFromSaveFile(saveDir, ssFolder, tbFolder)) // default back to requesting to the directory
+		{
+			std::cout << "Failed to verify the screenshot location from the save file!\n";
+
+			steam::RequestScreenshotDirectory(ssFolder, tbFolder);
+			WriteDirectoriesToSaveFile(saveDir, ssFolder, tbFolder);
+		}
+	}
 
 	std::for_each(std::execution::par_unseq, pngs.begin(), pngs.end(),
 		[&](const std::string& png)
@@ -119,12 +171,8 @@ int main(int argc, char** argv)
 			std::string screenshotFile = ssFolder.string() + "\\" + file;
 			std::string thumbnailsFile = tbFolder.string() + "\\" + file;
 
-			#ifdef _DEBUG
-			std::cout << screenshotFile << '\n' << thumbnailsFile << '\n';
-			#endif
-
-			if (!image.WriteToFile(screenshotFile, thumbnailsFile))
-				return;
+			//if (!image.WriteToFile(screenshotFile, thumbnailsFile))
+			//	return;
 		}
 	);
 	return 0;

@@ -171,9 +171,13 @@ int main(int argc, char** argv)
 			std::string screenshotFile = ssFolder.string() + "\\" + file;
 			std::string thumbnailsFile = tbFolder.string() + "\\" + file;
 
-			//if (!image.WriteToFile(screenshotFile, thumbnailsFile))
-			//	return;
+			if (!image.WriteToFile(screenshotFile, thumbnailsFile))
+				return;
 		}
 	);
+
+	std::string holder;
+	std::cin >> holder;
+
 	return 0;
 }
